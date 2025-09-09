@@ -1,10 +1,17 @@
-import re
 import os
 import json
 from functools import lru_cache
 
 from file_collector import find_dependencies
 
+def is_dependency_in_file(dep, file_path):
+    """Проверяет наличие зависимости в файле"""
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+            return dep in content
+    except Exception:
+        return False
 
 # Кэшируем анализ composer.json для улучшения производительности
 @lru_cache(maxsize=1)

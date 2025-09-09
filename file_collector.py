@@ -1,5 +1,6 @@
 import fnmatch
 import os
+import re
 
 
 def should_exclude(path, exclude_dirs, exclude_files, exclude_patterns):
@@ -52,3 +53,37 @@ def file_collector(directory, extensions=None, exclude_dirs=None, exclude_files=
                 files.append(file_path)
 
     return files
+
+
+def find_dependencies(file_path):
+    """Находит зависимости PHP файла (include, require, use statements)"""
+    dependencies = []
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+            # Поиск include/require statements
+            include_patterns = [
+                r'include\s*[\'"]([^\'"]+)[\'"]',
+                r'require\s*[\'"]([^\'"]+)[\'"]',
+                r'include_once\s*[\'"]([^\'"]+)[\'"]',
+                r'require_once\s*[\'"]([^\'"]+)[\'"]'
+            ]
+
+            for pattern in include_patterns:
+                matches = re.findall(pattern, content)
+                dependencies.extend(matches)
+
+            # Поиск use statements (импорты классов)
+            use_pattern = r'use\s+([^;]+);'
+            use_matches = re.findall(use_pattern, content)
+            for match in use_matches:
+                # Убираем пробелы и добавляем в зависимости
+                cleaned = match.strip()
+                if cleaned:
+                    dependencies.append(cleaned)
+
+    except Exception as e:
+        print(f"Ошибка поиска зависимостей в файле {file_path}: {e}")
+
+    return dependencies
