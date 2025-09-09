@@ -18,10 +18,10 @@ def main():
     parser.add_argument("-m", "--model", type=str, required=True, help="Имя модели")
 
     # Добавляем возможность указать несколько расширений файлов для поиска
-    parser.add_argument("-e", "--extensions", nargs="+", required=False, help="Список расширений файлов для поиска")
+    parser.add_argument("-e", "--extensions", nargs="+", required=False, default=[], help="Список расширений файлов для поиска")
 
     # Добавляем возможность указать количество потоков
-    parser.add_argument("-t", "--threads", type=int, required=False, help="Количество потоков")
+    parser.add_argument("-t", "--threads", type=int, required=False, default=3, help="Количество потоков")
 
     # Добавляем возможность указать фреймворк или cms вручную
     parser.add_argument("-а", "--framework", type=str, required=False, help="Фреймворк/CMS")
