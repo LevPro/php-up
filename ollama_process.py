@@ -61,7 +61,7 @@ def ollama_process(file_content, model, file_path, all_files, framework, compose
         composer_context = ""
 
     # Добавляем информацию о фреймворке
-    framework_info = f"\n7. Учти, что проект использует {framework.upper()}" if framework != 'unknown' else ""
+    framework_info = f"\n7. Проект использует {framework.upper()}" if framework != 'unknown' else ""
 
     prompt = f"""Проанализируй предоставленный PHP код и выполни следующие преобразования:
     1. Адаптируй синтаксис под PHP 8.4 с использованием новейших возможностей языка
