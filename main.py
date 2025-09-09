@@ -8,8 +8,6 @@ from dependency_analyzer import analyze_composer_dependencies_cached  # Новы
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Поиск всех файлов с указанными расширениями в заданной директории.")
-
     # Создаём парсер аргументов командной строки для удобного взаимодействия с программой
     parser = argparse.ArgumentParser(description="Поиск всех файлов с указанными расширениями в заданной директории.")
 
