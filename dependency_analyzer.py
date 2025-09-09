@@ -22,12 +22,21 @@ def analyze_composer_dependencies_cached(project_dir):
 
 def analyze_dependencies(main_file_path, all_files):
     """Анализирует зависимости и находит соответствующие файлы"""
-    dependencies = find_dependencies(main_file_path)
+    try:
+        dependencies = find_dependencies(main_file_path)
+    except Exception as e:
+        print(f"Ошибка поиска зависимостей в файле {main_file_path}: {e}")
+        dependencies = []
+
     dependency_files = {}
-    
+
     # Получаем зависимости из composer.json (кэшированные)
     project_dir = os.path.dirname(main_file_path)
-    composer_deps = analyze_composer_dependencies_cached(project_dir)
+    try:
+        composer_deps = analyze_composer_dependencies_cached(project_dir)
+    except Exception as e:
+        print(f"Ошибка анализа composer.json: {e}")
+        composer_deps = {}
 
     # Кэшируем содержимое файлов один раз для снижения IO
     file_cache = {}
@@ -40,11 +49,15 @@ def analyze_dependencies(main_file_path, all_files):
             print(f"Ошибка чтения файла {file_path}: {e}")
 
     for dep in dependencies:
-        # Ищем файл, соответствующий зависимости, используя кэш
-        for file_path, content in file_cache.items():
-            if dep in content:
-                dependency_files[dep] = content
-                break
+        try:
+            # Ищем файл, соответствующий зависимости, используя кэш
+            for file_path, content in file_cache.items():
+                if dep in content:
+                    dependency_files[dep] = content
+                    break
+        except Exception as e:
+            print(f"Ошибка обработки зависимости {dep}: {e}")
+            continue
 
     return {
         'file_dependencies': dependency_files,

@@ -40,17 +40,25 @@ def _strip_code_fences(text: str) -> str:
 
 
 def ollama_process(file_content, model, file_path, all_files, framework, composer_deps):
-    # Анализируем зависимости
-    dependencies = analyze_dependencies(file_path, all_files)
+    # Анализируем зависимости с обработкой ошибок
+    try:
+        dependencies = analyze_dependencies(file_path, all_files)
+    except Exception as e:
+        print(f"Ошибка анализа зависимостей для файла {file_path}: {e}")
+        dependencies = {'file_dependencies': {}, 'composer_dependencies': {}}
 
     # Формируем контекст зависимостей из файлов
     dependency_context = "\n\nЗависимости из файлов:\n"
     for dep_name, dep_content in dependencies['file_dependencies'].items():
         dependency_context += f"--- {dep_name} ---\n{dep_content}\n\n"
 
-    # Фильтруем composer зависимости, оставляя только используемые в файле
-    relevant_composer_deps = get_relevant_dependencies(file_content, composer_deps)
-    composer_context = format_dependencies_for_prompt(relevant_composer_deps)
+    # Фильтруем composer зависимости
+    try:
+        relevant_composer_deps = get_relevant_dependencies(file_content, composer_deps)
+        composer_context = format_dependencies_for_prompt(relevant_composer_deps)
+    except Exception as e:
+        print(f"Ошибка фильтрации composer зависимостей: {e}")
+        composer_context = ""
 
     # Добавляем информацию о фреймворке
     framework_info = f"\n7. Учти, что проект использует {framework.upper()}" if framework != 'unknown' else ""

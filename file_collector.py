@@ -56,10 +56,7 @@ def file_collector(directory, extensions=None, exclude_dirs=None, exclude_files=
 
 
 def find_dependencies(file_path):
-    """Находит зависимости PHP файла (include, require, use statements)
-    Поддерживает простые случаи конкатенации путей (__DIR__, $_SERVER['DOCUMENT_ROOT'], './', '../', '../../').
-    Возвращает список строк путей/импортов без попытки разрешения в абсолютные пути.
-    """
+    """Находит зависимости PHP файла"""
     dependencies = []
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -74,27 +71,37 @@ def find_dependencies(file_path):
             ]
 
             for pattern in include_patterns:
-                matches = re.findall(pattern, content)
-                dependencies.extend(matches)
+                try:
+                    matches = re.findall(pattern, content)
+                    dependencies.extend(matches)
+                except Exception as e:
+                    print(f"Ошибка обработки паттерна {pattern}: {e}")
+                    continue
 
-            # Обработка простых конкатенаций путей: __DIR__ . '...', $_SERVER['DOCUMENT_ROOT'] . '...', './', '../', '../../'
+            # Обработка простых конкатенаций путей
             concat_patterns = [
                 r'(?:include|require|include_once|require_once)\s*\(?\s*__DIR__\s*(?:\.\s*DIRECTORY_SEPARATOR\s*)*\.\s*[\'\"]([^\'\"]+)[\'\"]\s*\)?',
                 r'(?:include|require|include_once|require_once)\s*\(?\s*\$_SERVER\s*\[\s*[\'\"]DOCUMENT_ROOT[\'\"]\s*\]\s*(?:\.\s*DIRECTORY_SEPARATOR\s*)*\.\s*[\'\"]([^\'\"]+)[\'\"]\s*\)?',
                 r'(?:include|require|include_once|require_once)\s*\(?\s*[\'\"](\.?\.?/[^\'\"]+)[\'\"]\s*\)?'
             ]
             for pattern in concat_patterns:
-                for rel in re.findall(pattern, content):
-                    dependencies.append(rel)
+                try:
+                    for rel in re.findall(pattern, content):
+                        dependencies.append(rel)
+                except Exception as e:
+                    print(f"Ошибка обработки паттерна {pattern}: {e}")
+                    continue
 
             # Поиск use statements (импорты классов)
-            use_pattern = r'use\s+([^;]+);'
-            use_matches = re.findall(use_pattern, content)
-            for match in use_matches:
-                # Убираем пробелы и добавляем в зависимости
-                cleaned = match.strip()
-                if cleaned:
-                    dependencies.append(cleaned)
+            try:
+                use_pattern = r'use\s+([^;]+);'
+                use_matches = re.findall(use_pattern, content)
+                for match in use_matches:
+                    cleaned = match.strip()
+                    if cleaned:
+                        dependencies.append(cleaned)
+            except Exception as e:
+                print(f"Ошибка обработки use statements: {e}")
 
     except Exception as e:
         print(f"Ошибка поиска зависимостей в файле {file_path}: {e}")
