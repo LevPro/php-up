@@ -56,7 +56,10 @@ def file_collector(directory, extensions=None, exclude_dirs=None, exclude_files=
 
 
 def find_dependencies(file_path):
-    """Находит зависимости PHP файла (include, require, use statements)"""
+    """Находит зависимости PHP файла (include, require, use statements)
+    Поддерживает простые случаи конкатенации путей (__DIR__, $_SERVER['DOCUMENT_ROOT'], './', '../', '../../').
+    Возвращает список строк путей/импортов без попытки разрешения в абсолютные пути.
+    """
     dependencies = []
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -73,6 +76,16 @@ def find_dependencies(file_path):
             for pattern in include_patterns:
                 matches = re.findall(pattern, content)
                 dependencies.extend(matches)
+
+            # Обработка простых конкатенаций путей: __DIR__ . '...', $_SERVER['DOCUMENT_ROOT'] . '...', './', '../', '../../'
+            concat_patterns = [
+                r'(?:include|require|include_once|require_once)\s*\(?\s*__DIR__\s*(?:\.\s*DIRECTORY_SEPARATOR\s*)*\.\s*[\'\"]([^\'\"]+)[\'\"]\s*\)?',
+                r'(?:include|require|include_once|require_once)\s*\(?\s*\$_SERVER\s*\[\s*[\'\"]DOCUMENT_ROOT[\'\"]\s*\]\s*(?:\.\s*DIRECTORY_SEPARATOR\s*)*\.\s*[\'\"]([^\'\"]+)[\'\"]\s*\)?',
+                r'(?:include|require|include_once|require_once)\s*\(?\s*[\'\"](\.?\.?/[^\'\"]+)[\'\"]\s*\)?'
+            ]
+            for pattern in concat_patterns:
+                for rel in re.findall(pattern, content):
+                    dependencies.append(rel)
 
             # Поиск use statements (импорты классов)
             use_pattern = r'use\s+([^;]+);'
