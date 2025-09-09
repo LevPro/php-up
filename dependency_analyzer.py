@@ -29,15 +29,21 @@ def analyze_dependencies(main_file_path, all_files):
     project_dir = os.path.dirname(main_file_path)
     composer_deps = analyze_composer_dependencies_cached(project_dir)
 
+    # Кэшируем содержимое файлов один раз для снижения IO
+    file_cache = {}
+    for file_path in all_files:
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                file_cache[file_path] = f.read()
+        except Exception as e:
+            # Пропускаем проблемные файлы, но продолжаем анализ
+            print(f"Ошибка чтения файла {file_path}: {e}")
+
     for dep in dependencies:
-        # Ищем файл, соответствующий зависимости
-        for file_path in all_files:
-            if is_dependency_in_file(dep, file_path):
-                try:
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        dependency_files[dep] = f.read()
-                except Exception as e:
-                    print(f"Ошибка чтения файла зависимости {file_path}: {e}")
+        # Ищем файл, соответствующий зависимости, используя кэш
+        for file_path, content in file_cache.items():
+            if dep in content:
+                dependency_files[dep] = content
                 break
 
     return {

@@ -5,6 +5,40 @@ from dependency_analyzer import analyze_dependencies
 from dependency_utils import get_relevant_dependencies, format_dependencies_for_prompt  # Новые импорты
 
 
+def _strip_code_fences(text: str) -> str:
+    """Убирает внешние тройные бэктики ```...``` и возможный язык после них, не трогая содержимое.
+    Работает построчно: если первая строка начинается с ``` — убираем её; если последняя строка — тоже ``` — убираем.
+    Ничего не удаляем внутри тела.
+    """
+    if not text:
+        return text
+    lines = text.splitlines()
+    # trim leading/trailing empty lines
+    while lines and lines[0].strip() == "":
+        lines.pop(0)
+    while lines and lines[-1].strip() == "":
+        lines.pop()
+    if not lines:
+        return ""
+
+    first = lines[0].strip()
+    last = lines[-1].strip()
+
+    if first.startswith("```"):
+        # убрать первую строку (может быть ``` или ```php)
+        lines = lines[1:]
+        # убрать возможные пустые строки в начале
+        while lines and lines[0].strip() == "":
+            lines.pop(0)
+        if lines and lines[-1].strip().startswith("```"):
+            lines = lines[:-1]
+    elif last.startswith("```"):
+        # только закрывающая — убираем её
+        lines = lines[:-1]
+
+    return "\n".join(lines)
+
+
 def ollama_process(file_content, model, file_path, all_files, framework, composer_deps):
     # Анализируем зависимости
     dependencies = analyze_dependencies(file_path, all_files)
@@ -61,8 +95,9 @@ def ollama_process(file_content, model, file_path, all_files, framework, compose
         response.raise_for_status()
 
         # Извлекаем результат из поля 'response' в JSON
-        result = response.json()
-        result = result['response'].replace("```", '').replace(" php", '')
+        result_json = response.json()
+        raw = result_json.get('response', '')
+        result = _strip_code_fences(raw)
 
         # Окончание отсчета времени
         end_time = time.time()
