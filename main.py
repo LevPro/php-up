@@ -9,8 +9,24 @@ from dependency_analyzer import analyze_composer_dependencies_cached  # Новы
 
 def main():
     parser = argparse.ArgumentParser(description="Поиск всех файлов с указанными расширениями в заданной директории.")
-    
-    # ... существующие аргументы ...
+
+    # Создаём парсер аргументов командной строки для удобного взаимодействия с программой
+    parser = argparse.ArgumentParser(description="Поиск всех файлов с указанными расширениями в заданной директории.")
+
+    # Добавляем аргумент для пути к директории, которую будем искать
+    parser.add_argument("directory", type=str, help="Путь к директории")
+
+    # Добавляем аргумент для имени модели, которая будет использоваться для обработки файлов
+    parser.add_argument("-m", "--model", type=str, required=True, help="Имя модели")
+
+    # Добавляем возможность указать несколько расширений файлов для поиска
+    parser.add_argument("-e", "--extensions", nargs="+", required=False, help="Список расширений файлов для поиска")
+
+    # Добавляем возможность указать количество потоков
+    parser.add_argument("-t", "--threads", type=int, required=False, help="Количество потоков")
+
+    # Добавляем возможность указать фреймворк или cms вручную
+    parser.add_argument("-а", "--framework", type=str, required=False, help="Фреймворк/CMS")
     
     args = parser.parse_args()
 
