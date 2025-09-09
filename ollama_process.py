@@ -2,16 +2,24 @@ import time
 
 import requests
 from dependency_analyzer import analyze_dependencies
+from dependency_utils import get_relevant_dependencies, format_dependencies_for_prompt  # Новые импорты
 
 
-def ollama_process(file_content, model, file_path, all_files):
+def ollama_process(file_content, model, file_path, all_files, framework, composer_deps):
     # Анализируем зависимости
     dependencies = analyze_dependencies(file_path, all_files)
 
-    # Формируем контекст зависимостей
-    dependency_context = "\n\nЗависимости:\n"
-    for dep_name, dep_content in dependencies.items():
+    # Формируем контекст зависимостей из файлов
+    dependency_context = "\n\nЗависимости из файлов:\n"
+    for dep_name, dep_content in dependencies['file_dependencies'].items():
         dependency_context += f"--- {dep_name} ---\n{dep_content}\n\n"
+
+    # Фильтруем composer зависимости, оставляя только используемые в файле
+    relevant_composer_deps = get_relevant_dependencies(file_content, composer_deps)
+    composer_context = format_dependencies_for_prompt(relevant_composer_deps)
+
+    # Добавляем информацию о фреймворке
+    framework_info = f"\n7. Учти, что проект использует {framework.upper()}" if framework != 'unknown' else ""
 
     prompt = f"""Проанализируй предоставленный PHP код и выполни следующие преобразования:
     1. Адаптируй синтаксис под PHP 8.4 с использованием новейших возможностей языка
@@ -21,15 +29,18 @@ def ollama_process(file_content, model, file_path, all_files):
        - Проверь корректность использования методов
        - Убедись в правильности наследования и реализации интерфейсов
        - Проверь соответствие сигнатур методов
+       - Учти версии внешних библиотек из composer.json
     5. Сохрани исходную функциональность при модификации
     6. Верни только полностью исправленный код без пояснений
+    {framework_info}
 
     Код для анализа:
     ```php
     {file_content}
     ```
     
-    {dependency_context}"""
+    {dependency_context}
+    {composer_context}"""
 
     # Начало отсчета времени
     start_time = time.time()
@@ -59,7 +70,8 @@ def ollama_process(file_content, model, file_path, all_files):
 
         return {
             "processing_time": processing_time,
-            "result": result
+            "result": result,
+            "file_path": file_path,
         }
 
     except requests.exceptions.RequestException as e:
