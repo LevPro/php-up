@@ -1,52 +1,54 @@
+import fnmatch
 import os
-import re
 
-def file_collector(directory, extensions=None):
+
+def should_exclude(path, exclude_dirs, exclude_files, exclude_patterns):
+    """Проверяет, нужно ли исключить путь"""
+    # Проверка точных совпадений директорий
+    if any(os.path.abspath(path) == os.path.abspath(ex_dir) for ex_dir in exclude_dirs):
+        return True
+
+    # Проверка точных совпадений файлов
+    if any(os.path.abspath(path) == os.path.abspath(ex_file) for ex_file in exclude_files):
+        return True
+
+    # Проверка по паттернам
+    filename = os.path.basename(path)
+    if any(fnmatch.fnmatch(filename, pattern) for pattern in exclude_patterns):
+        return True
+
+    return False
+
+
+def file_collector(directory, extensions=None, exclude_dirs=None, exclude_files=None, exclude_patterns=None):
     if not os.path.exists(directory):
         raise ValueError(f"{directory} не найден")
 
     if extensions is None:
-        extensions = ['php']  # Добавлен комментарий: значение по умолчанию для расширений файлов
+        extensions = ['php']
+
+    if exclude_dirs is None:
+        exclude_dirs = []
+    if exclude_files is None:
+        exclude_files = []
+    if exclude_patterns is None:
+        exclude_patterns = []
 
     files = []
 
     for root, dirs, filenames in os.walk(directory):
+        # Исключаем директории из дальнейшего обхода
+        dirs[:] = [d for d in dirs if not should_exclude(os.path.join(root, d), exclude_dirs, [], exclude_patterns)]
+
         for filename in filenames:
             if any(filename.endswith(ext) for ext in extensions):
-                file = os.path.join(root, filename)
-                print(f"Добавлен файл: {file}")  # Добавлен комментарий: сообщение о добавлении файла
-                files.append(file)
+                file_path = os.path.join(root, filename)
+
+                if should_exclude(file_path, [], exclude_files, exclude_patterns):
+                    print(f"Исключен файл: {file_path}")
+                    continue
+
+                print(f"Добавлен файл: {file_path}")
+                files.append(file_path)
 
     return files
-
-def find_dependencies(file_path):
-    """Находит зависимости файла (импорты, включения, наследование)"""
-    dependencies = []
-
-    try:
-        with open(file_path, 'r', encoding='utf-8') as file:  # Добавлен комментарий: открытие файла с указанием кодировки
-            content = file.read()
-
-            # Регулярные выражения для поиска зависимостей
-            patterns = [
-                r'use\s+([\w\\\\]+)(?:\s+as\s+\w+)?;',  # use statements
-                r'extends\s+([\w\\\\]+)',  # class inheritance
-                r'implements\s+([\w\\\\]+(?:\s*,\s*[\w\\\\]+)*)',  # interfaces
-                r'new\s+([\w\\\\]+)\s*\(',  # object instantiation
-                r'([\w\\\\]+)::',  # static calls
-                r'function\s+([\w]+)\s*\([^)]*\)\s*:',  # type hints in parameters
-                r':\s*\??\s*([\w\\\\]+)\s*\{',  # return type hints
-            ]
-
-            for pattern in patterns:
-                matches = re.findall(pattern, content)
-                for match in matches:
-                    if isinstance(match, str):
-                        dependencies.append(match)  # Добавлен комментарий: добавление найденной зависимости в список
-                    else:
-                        dependencies.extend([m.strip() for m in match.split(',')])  # Добавлен комментарий: расширение списка зависимостей для массивов
-
-    except Exception as e:
-        print(f"Ошибка анализа зависимостей файла {file_path}: {e}")  # Добавлен комментарий: обработка ошибок при чтении файла
-
-    return list(set(dependencies))  # Убираем дубликаты и добавлен комментарий: возвращение списка зависимостей без дубликатов

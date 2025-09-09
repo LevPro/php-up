@@ -25,6 +25,15 @@ def main():
 
     # Добавляем возможность указать фреймворк или cms вручную
     parser.add_argument("-а", "--framework", type=str, required=False, help="Фреймворк/CMS")
+
+    # Добавляем директории, которые необходимо исключить
+    parser.add_argument("-ed", "--exclude-dirs", nargs="+", help="Директории для исключения", default=[])
+
+    # Добавляем файлы, которые необходимо исключить
+    parser.add_argument("-ef", "--exclude-files", nargs="+", help="Файлы для исключения", default=[])
+
+    # Добавляем паттерны, которые необходимо исключить
+    parser.add_argument("-ep", "--exclude-patterns", nargs="+", help="Патерны для исключения", default=[])
     
     args = parser.parse_args()
 
@@ -36,7 +45,7 @@ def main():
         print(f"Определен фреймворк: {framework}")
 
     # Собираем файлы с указанными расширениями в директории
-    files = file_collector(args.directory, args.extensions)
+    files = file_collector(args.directory, args.extensions, exclude_dirs=args.exclude_dirs, exclude_files=args.exclude_files, exclude_patterns=args.exclude_patterns)
     
     # Анализируем composer зависимости один раз для всего проекта
     composer_deps = analyze_composer_dependencies_cached(args.directory)
