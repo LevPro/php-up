@@ -15,7 +15,7 @@
 1. Установите [Ollama](https://ollama.ai/)
 2. Клонируйте репозиторий:
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/LevPro/php-up
 cd php-modernizer
 ```
 3. Установите зависимости: 
@@ -28,6 +28,6 @@ pip install -r requirements.txt
 python main.py /path/to/php/project -m codellama:7b -e php
 ```
 Параметры командной строки:
-directory (обязательный): Путь к директории с PHP-проектом
--m/--model (обязательный): Имя модели Ollama
--e/--extensions: Расширения файлов для обработки (по умолчанию: php)
+- directory (обязательный): Путь к директории с PHP-проектом
+- -m/--model (обязательный): Имя модели Ollama
+- -e/--extensions: Расширения файлов для обработки (по умолчанию: php)
