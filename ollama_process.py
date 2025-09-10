@@ -98,6 +98,8 @@ def ollama_process(file_content, model, file_path, all_files, framework, compose
         "stream": False
     }
 
+    print(f"Отправка запроса в ollam {model}: {prompt}")
+
     try:
         response = requests.post(url, headers=headers, json=data, timeout=600)
         response.raise_for_status()
