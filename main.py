@@ -1,6 +1,7 @@
 import argparse
-import os
+
 from concurrent.futures import ThreadPoolExecutor
+from encoding_converter import convert_dir_to_utf8
 from file_collector import file_collector
 from ollama_process import ollama_process
 from framework_detector import detect_framework
@@ -43,6 +44,9 @@ def main():
     else:
         framework = detect_framework(args.directory)
         print(f"Определен фреймворк: {framework}")
+
+    # Изменяем кодировку файлов
+    convert_dir_to_utf8(args.directory, args.extensions)
 
     # Собираем файлы с указанными расширениями в директории
     files = file_collector(args.directory, args.extensions, exclude_dirs=args.exclude_dirs, exclude_files=args.exclude_files, exclude_patterns=args.exclude_patterns)
