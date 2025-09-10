@@ -5,7 +5,6 @@ from encoding_converter import convert_dir_to_utf8
 from file_collector import file_collector
 from ollama_process import ollama_process
 from framework_detector import detect_framework
-from dependency_analyzer import analyze_composer_dependencies_cached  # Новый импорт
 
 
 def main():
@@ -51,13 +50,10 @@ def main():
     # Собираем файлы с указанными расширениями в директории
     files = file_collector(args.directory, args.extensions, exclude_dirs=args.exclude_dirs, exclude_files=args.exclude_files, exclude_patterns=args.exclude_patterns)
 
-    # Анализируем composer зависимости один раз для всего проекта
-    composer_deps = analyze_composer_dependencies_cached(args.directory)
-
     # Определяем количество асинхронных потоков
     with ThreadPoolExecutor(max_workers=args.threads) as executor:
         # Передаем composer зависимости в process_file
-        futures = [executor.submit(process_file, file_path, args.model, files, framework, composer_deps) for file_path in files]
+        futures = [executor.submit(process_file, file_path, args.model, framework) for file_path in files]
 
         # Ожидаем завершения всех задач и обрабатываем результаты
         for future in futures:
@@ -68,14 +64,14 @@ def main():
                 print(f"Ошибка при обработке файла: {e}")
 
 
-def process_file(file_path, model, all_files, framework, composer_deps):
+def process_file(file_path, model, framework):
     """Функция для обработки отдельного файла"""
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
             file_content = file.read()
 
         # Передаем composer зависимости в ollama_process
-        process_result = ollama_process(file_content, model, file_path, all_files, framework, composer_deps)
+        process_result = ollama_process(file_content, model, framework)
 
         with open(file_path, 'w', encoding='utf-8') as file:
             file.write(process_result['result'])

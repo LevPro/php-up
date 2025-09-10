@@ -1,8 +1,6 @@
 import time
 
 import requests
-from dependency_analyzer import analyze_dependencies
-from dependency_utils import get_relevant_dependencies, format_dependencies_for_prompt  # Новые импорты
 
 
 def _strip_code_fences(text: str) -> str:
@@ -39,29 +37,7 @@ def _strip_code_fences(text: str) -> str:
     return "\n".join(lines)
 
 
-def ollama_process(file_content, model, file_path, all_files, framework, composer_deps):
-    dependency_context = ""
-
-    # Анализируем зависимости с обработкой ошибок
-    try:
-        dependencies = analyze_dependencies(file_path, all_files)
-
-        if len(dependencies['file_dependencies'].items()) > 0:
-            # Формируем контекст зависимостей из файлов
-            dependency_context = "\n\nЗависимости из файлов:\n"
-            for dep_name, dep_content in dependencies['file_dependencies'].items():
-                dependency_context += f"--- {dep_name} ---\n{dep_content}\n\n"
-    except Exception as e:
-        print(f"Ошибка анализа зависимостей для файла {file_path}: {e}")
-
-    # Фильтруем composer зависимости
-    try:
-        relevant_composer_deps = get_relevant_dependencies(file_content, composer_deps)
-        composer_context = format_dependencies_for_prompt(relevant_composer_deps)
-    except Exception as e:
-        print(f"Ошибка фильтрации composer зависимостей: {e}")
-        composer_context = ""
-
+def ollama_process(file_content, model, framework):
     # Добавляем информацию о фреймворке
     framework_info = f"\n7. Проект использует {framework.upper()}" if framework != 'unknown' else ""
 
@@ -69,11 +45,6 @@ def ollama_process(file_content, model, file_path, all_files, framework, compose
     1. Адаптируй синтаксис под PHP 8.4 с использованием новейших возможностей языка
     2. Добавь комментарии на русском языке для методов и сложных логических блоков
     3. Приведи код к стандартам PSR-12 и современным best practices
-    4. Учитывай контекст зависимостей (приложены ниже):
-       - Проверь корректность использования методов
-       - Убедись в правильности наследования и реализации интерфейсов
-       - Проверь соответствие сигнатур методов
-       - Учти версии внешних библиотек из composer.json
     5. Сохрани исходную функциональность при модификации
     6. Верни только полностью исправленный код без пояснений
     {framework_info}
@@ -81,10 +52,7 @@ def ollama_process(file_content, model, file_path, all_files, framework, compose
     Код для анализа:
     ```php
     {file_content}
-    ```
-    
-    {dependency_context}
-    {composer_context}"""
+    ```"""
 
     # Начало отсчета времени
     start_time = time.time()
@@ -118,7 +86,6 @@ def ollama_process(file_content, model, file_path, all_files, framework, compose
         return {
             "processing_time": processing_time,
             "result": result,
-            "file_path": file_path,
         }
 
     except requests.exceptions.RequestException as e:
