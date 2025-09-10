@@ -53,7 +53,7 @@ def main():
     # Определяем количество асинхронных потоков
     with ThreadPoolExecutor(max_workers=args.threads) as executor:
         # Передаем composer зависимости в process_file
-        futures = [executor.submit(process_file, file_path, args.model, args.extensions, files, framework, composer_deps) for file_path in files]
+        futures = [executor.submit(process_file, file_path, args.model, files, framework, composer_deps) for file_path in files]
 
         # Ожидаем завершения всех задач и обрабатываем результаты
         for future in futures:
@@ -64,7 +64,7 @@ def main():
                 print(f"Ошибка при обработке файла: {e}")
 
 
-def process_file(file_path, model, extensions, all_files, framework, composer_deps):
+def process_file(file_path, model, all_files, framework, composer_deps):
     """Функция для обработки отдельного файла"""
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
