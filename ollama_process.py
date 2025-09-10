@@ -1,48 +1,6 @@
 import time
-import re
 
 import requests
-
-
-def _strip_code_fences(text: str) -> str:
-    """Убирает внешние тройные бэктики ```...``` и возможный язык после них, не трогая содержимое.
-    Работает построчно: если первая строка начинается с ``` — убираем её; если последняя строка — тоже ``` — убираем.
-    Ничего не удаляем внутри тела.
-    """
-    if not text:
-        return text
-    lines = text.splitlines()
-    # trim leading/trailing empty lines
-    while lines and lines[0].strip() == "":
-        lines.pop(0)
-    while lines and lines[-1].strip() == "":
-        lines.pop()
-    if not lines:
-        return ""
-
-    first = lines[0].strip()
-    last = lines[-1].strip()
-
-    if first.startswith("```"):
-        # убрать первую строку (может быть ``` или ```php)
-        lines = lines[1:]
-        # убрать возможные пустые строки в начале
-        while lines and lines[0].strip() == "":
-            lines.pop(0)
-        if lines and lines[-1].strip().startswith("```"):
-            lines = lines[:-1]
-    elif last.startswith("```"):
-        # только закрывающая — убираем её
-        lines = lines[:-1]
-
-    text = "\n".join(lines)
-
-    # Заменяем множественные переносы строк на двойные
-    text = re.sub(r'\n{3,}', '\n\n', text)
-    # Удаляем переносы в конце файла
-    text = re.sub(r'\n+$', '\n', text)
-
-    return text
 
 
 def ollama_process(file_content, model, framework, requirements):
@@ -52,7 +10,7 @@ def ollama_process(file_content, model, framework, requirements):
     # Добавляем дополнительные требования
     requirements_info = ""
     if len(requirements) > 0:
-        start_num = 8 if framework == 'unknown' else 7
+        start_num = 8 if framework != 'unknown' else 7
         for requirement in requirements:
             requirements_info = requirements_info + f"{start_num}. {requirement}\n"
             start_num += 1
@@ -95,7 +53,7 @@ def ollama_process(file_content, model, framework, requirements):
         # Извлекаем результат из поля 'response' в JSON
         result_json = response.json()
         raw = result_json.get('response', '')
-        result = _strip_code_fences(raw)
+        result = raw.replace("```php", "").replace("```", "")
 
         # Окончание отсчета времени
         end_time = time.time()
