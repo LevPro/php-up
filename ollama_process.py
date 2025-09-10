@@ -1,4 +1,5 @@
 import time
+import re
 
 import requests
 
@@ -34,7 +35,14 @@ def _strip_code_fences(text: str) -> str:
         # только закрывающая — убираем её
         lines = lines[:-1]
 
-    return "".join(lines)
+    text = "\n".join(lines)
+
+    # Заменяем множественные переносы строк на двойные
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    # Удаляем переносы в конце файла
+    text = re.sub(r'\n+$', '\n', text)
+
+    return text
 
 
 def ollama_process(file_content, model, framework, requirements):
