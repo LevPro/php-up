@@ -46,7 +46,7 @@ def main():
 
     # Собираем файлы с указанными расширениями в директории
     files = file_collector(args.directory, args.extensions, exclude_dirs=args.exclude_dirs, exclude_files=args.exclude_files, exclude_patterns=args.exclude_patterns)
-    
+
     # Анализируем composer зависимости один раз для всего проекта
     composer_deps = analyze_composer_dependencies_cached(args.directory)
 
@@ -82,3 +82,6 @@ def process_file(file_path, model, extensions, all_files, framework, composer_de
         }
     except Exception as e:
         raise Exception(f"Ошибка при обработке файла {file_path}: {e}")
+
+if __name__ == "__main__":
+    main()
