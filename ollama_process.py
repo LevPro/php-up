@@ -1,9 +1,49 @@
 import time
+import re
 
 import requests
 
+def _strip_code_fences(text: str) -> str:
+    """Убирает внешние тройные бэктики ```...``` и возможный язык после них, не трогая содержимое.
+    Работает построчно: если первая строка начинается с ``` — убираем её; если последняя строка — тоже ``` — убираем.
+    Ничего не удаляем внутри тела.
+    """
+    if not text:
+        return text
+    lines = text.splitlines()
+    # trim leading/trailing empty lines
+    while lines and lines[0].strip() == "":
+        lines.pop(0)
+    while lines and lines[-1].strip() == "":
+        lines.pop()
+    if not lines:
+        return ""
 
-def ollama_process(file_content, model, framework, requirements):
+    first = lines[0].strip()
+    last = lines[-1].strip()
+
+    if first.startswith("```"):
+        # убрать первую строку (может быть ``` или ```php)
+        lines = lines[1:]
+        # убрать возможные пустые строки в начале
+        while lines and lines[0].strip() == "":
+            lines.pop(0)
+        if lines and lines[-1].strip().startswith("```"):
+            lines = lines[:-1]
+    elif last.startswith("```"):
+        # только закрывающая — убираем её
+        lines = lines[:-1]
+
+    text = "\n".join(lines)
+
+    # Заменяем множественные переносы строк на двойные
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    # Удаляем переносы в конце файла
+    text = re.sub(r'\n+$', '\n', text)
+
+    return text
+
+def ollama_process(file_path, model, framework, requirements):
     # Добавляем информацию о фреймворке
     framework_info = f"\n7. Проект использует {framework.upper()}" if framework != 'unknown' else ""
 
@@ -15,6 +55,8 @@ def ollama_process(file_content, model, framework, requirements):
             requirements_info = requirements_info + f"{start_num}. {requirement}\n"
             start_num += 1
 
+    with open(file_path, 'r', encoding='utf-8') as file:
+        file_content = file.read()
 
     prompt = f"""Проанализируй предоставленный PHP код и выполни следующие преобразования:
     1. Адаптируй синтаксис под PHP 8.4 с использованием новейших возможностей языка
@@ -44,7 +86,7 @@ def ollama_process(file_content, model, framework, requirements):
         "stream": False
     }
 
-    print(f"Отправка запроса в ollam {model}: {prompt}")
+    print(f"Отправка запроса: {prompt}")
 
     try:
         response = requests.post(url, headers=headers, json=data, timeout=600)
@@ -53,16 +95,19 @@ def ollama_process(file_content, model, framework, requirements):
         # Извлекаем результат из поля 'response' в JSON
         result_json = response.json()
         raw = result_json.get('response', '')
-        result = raw.replace("```php", "").replace("```", "")
+        result = _strip_code_fences(raw)
+
+        print(f"Получен ответ: {result}")
+
+        # Записываем результат
+        with open(file_path, 'w', encoding='utf-8') as file:
+            file.write(result)
 
         # Окончание отсчета времени
         end_time = time.time()
         processing_time = end_time - start_time
 
-        return {
-            "processing_time": processing_time,
-            "result": result,
-        }
+        return processing_time
 
     except requests.exceptions.RequestException as e:
         raise Exception(f"Ошибка при запросе к Ollama: {str(e)}")

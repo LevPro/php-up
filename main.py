@@ -70,17 +70,14 @@ def main():
 def process_file(file_path, model, framework, requirements):
     """Функция для обработки отдельного файла"""
     try:
-        with open(file_path, 'r', encoding='utf-8') as file:
-            file_content = file.read()
-
-        # Передаем composer зависимости в ollama_process
-        process_result = ollama_process(file_content, model, framework, requirements)
+        # Передаем в ollama_process
+        process_result = ollama_process(file_path, model, framework, requirements)
 
         with open(file_path, 'w', encoding='utf-8') as file:
             file.write(process_result['result'])
 
         return {
-            "processing_time": process_result['processing_time'],
+            "processing_time": process_result,
             "file_path": file_path
         }
     except Exception as e:
