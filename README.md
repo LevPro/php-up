@@ -33,6 +33,7 @@ python main.py /path/to/php/project -m codellama:7b -f symfony -t 4 -e php phtml
 - -e/--extensions: Расширения файлов для обработки (по умолчанию: php)
 - -t/--threads: Количество потоков (по умолчанию: 3)
 - -f/--framework: Ручное указание фреймворка/CMS (опционально)
-- -ed/--exclude-dirs - полные пути к директориям для исключения
-- -ef/--exclude-files - полные пути к файлам для исключения
-- -ep/--exclude-patterns - маски для исключения (например, *.test.php, temp_*)
+- -r/--requirements: Дополнительные требования (опционально)
+- -ed/--exclude-dirs - полные пути к директориям для исключения (опционально)
+- -ef/--exclude-files - полные пути к файлам для исключения (опционально)
+- -ep/--exclude-patterns - маски для исключения (например, *.test.php, temp_*) (опционально)

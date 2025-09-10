@@ -34,12 +34,21 @@ def _strip_code_fences(text: str) -> str:
         # только закрывающая — убираем её
         lines = lines[:-1]
 
-    return "\n".join(lines)
+    return "".join(lines)
 
 
-def ollama_process(file_content, model, framework):
+def ollama_process(file_content, model, framework, requirements):
     # Добавляем информацию о фреймворке
     framework_info = f"\n7. Проект использует {framework.upper()}" if framework != 'unknown' else ""
+
+    # Добавляем дополнительные требования
+    requirements_info = ""
+    if len(requirements) > 0:
+        start_num = 8 if framework == 'unknown' else 7
+        for requirement in requirements:
+            requirements_info = requirements_info + f"{start_num}. {requirement}\n"
+            start_num += 1
+
 
     prompt = f"""Проанализируй предоставленный PHP код и выполни следующие преобразования:
     1. Адаптируй синтаксис под PHP 8.4 с использованием новейших возможностей языка

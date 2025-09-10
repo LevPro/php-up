@@ -34,6 +34,9 @@ def main():
 
     # Добавляем паттерны, которые необходимо исключить
     parser.add_argument("-ep", "--exclude-patterns", nargs="+", help="Патерны для исключения", default=[])
+
+    # Добавляем дополнительные требования
+    parser.add_argument("-r", "--requirements", nargs="+", help="Дополнительные требования", default=[])
     
     args = parser.parse_args()
 
@@ -53,7 +56,7 @@ def main():
     # Определяем количество асинхронных потоков
     with ThreadPoolExecutor(max_workers=args.threads) as executor:
         # Передаем composer зависимости в process_file
-        futures = [executor.submit(process_file, file_path, args.model, framework) for file_path in files]
+        futures = [executor.submit(process_file, file_path, args.model, framework, args.requirements) for file_path in files]
 
         # Ожидаем завершения всех задач и обрабатываем результаты
         for future in futures:
@@ -64,14 +67,14 @@ def main():
                 print(f"Ошибка при обработке файла: {e}")
 
 
-def process_file(file_path, model, framework):
+def process_file(file_path, model, framework, requirements):
     """Функция для обработки отдельного файла"""
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
             file_content = file.read()
 
         # Передаем composer зависимости в ollama_process
-        process_result = ollama_process(file_content, model, framework)
+        process_result = ollama_process(file_content, model, framework, requirements)
 
         with open(file_path, 'w', encoding='utf-8') as file:
             file.write(process_result['result'])
