@@ -65,6 +65,7 @@ def ollama_process(file_content, model, framework, requirements):
     5. Сохрани исходную функциональность при модификации
     6. Верни только полностью исправленный код без пояснений
     {framework_info}
+    {requirements_info}
 
     Код для анализа:
     ```php
