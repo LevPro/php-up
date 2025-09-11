@@ -48,7 +48,7 @@ def convert_file_to_utf8(file_path):
 def convert_dir_to_utf8(directory, extensions=None):
     """Рекурсивно конвертирует файлы в директории в UTF-8"""
     if extensions is None:
-        extensions = ['.php', '.html', '.css', '.js', '.txt', '.json', '.xml', '.md', '.py']
+        extensions = ['php']
 
     converted_count = 0
     files_to_convert = []
