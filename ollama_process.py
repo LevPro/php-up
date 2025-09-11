@@ -85,6 +85,7 @@ def ollama_process(file_content, model, framework, requirements):
     2. Добавь комментарии на русском
     3. Приведи к стандартам PSR-12
     4. Сохрани функциональность
+    5. В ответе предоставь только код без пояснений
     {framework_info}
     {requirements_info}
 
@@ -114,6 +115,7 @@ def ollama_process(file_content, model, framework, requirements):
         # Извлекаем результат из поля 'response' в JSON
         result = response.json()
         result = result['response']
+        result = _strip_code_fences(result)
 
         # Окончание отсчета времени
         end_time = time.time()
