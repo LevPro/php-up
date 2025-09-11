@@ -1,7 +1,34 @@
 import time
 import re
-
 import requests
+import hashlib
+import json
+import os
+from functools import lru_cache
+
+# Глобальная переменная для кэша
+CACHE_FILE = "ollama_cache.json"
+cache = {}
+
+
+def init_cache():
+    """Инициализирует кэш из файла"""
+    global cache
+    if os.path.exists(CACHE_FILE):
+        try:
+            with open(CACHE_FILE, 'r', encoding='utf-8') as f:
+                cache = json.load(f)
+        except:
+            cache = {}
+
+
+def save_cache():
+    """Сохраняет кэш в файл"""
+    try:
+        with open(CACHE_FILE, 'w', encoding='utf-8') as f:
+            json.dump(cache, f, ensure_ascii=False, indent=2)
+    except:
+        pass
 
 
 def _strip_code_fences(text: str) -> str:
@@ -45,7 +72,25 @@ def _strip_code_fences(text: str) -> str:
     return text
 
 
+@lru_cache(maxsize=1000)
+def _generate_prompt_hash(file_content, framework, requirements):
+    """Генерирует хэш для кэширования промптов"""
+    content = f"{file_content}_{framework}_{'_'.join(requirements)}"
+    return hashlib.md5(content.encode('utf-8')).hexdigest()
+
+
 def ollama_process(file_content, model, framework, requirements):
+    # Генерируем хэш для кэширования
+    content_hash = _generate_prompt_hash(file_content, framework or "unknown", tuple(requirements))
+
+    # Проверяем, есть ли результат в кэше
+    if content_hash in cache:
+        cached_result = cache[content_hash]
+        return {
+            "processing_time": cached_result["processing_time"],
+            "result": cached_result["result"]
+        }
+
     # Добавляем информацию о фреймворке
     framework_info = f"\n6. Проект использует {framework.upper()}" if framework != 'unknown' else ""
 
@@ -57,16 +102,16 @@ def ollama_process(file_content, model, framework, requirements):
             requirements_info = requirements_info + f"{start_num}. {requirement}\n"
             start_num += 1
 
-    prompt = f"""Проанализируй предоставленный PHP код и выполни следующие преобразования:
-    1. Адаптируй синтаксис под PHP 8.4 с использованием новейших возможностей языка
-    2. Добавь комментарии на русском языке для методов и сложных логических блоков
-    3. Приведи код к стандартам PSR-12 и современным best practices
-    4. Сохрани исходную функциональность при модификации
-    5. Верни только полностью исправленный код без пояснений
+    # Упрощенный промпт для ускорения обработки
+    prompt = f"""Модернизируй PHP код:
+    1. Адаптируй под PHP 8.4
+    2. Добавь комментарии на русском
+    3. Приведи к стандартам PSR-12
+    4. Сохрани функциональность
     {framework_info}
     {requirements_info}
 
-    Код для анализа:
+    Код:
     ```php
     {file_content}
     ```"""
@@ -96,6 +141,12 @@ def ollama_process(file_content, model, framework, requirements):
         # Окончание отсчета времени
         end_time = time.time()
         processing_time = end_time - start_time
+
+        # Сохраняем результат в кэш
+        cache[content_hash] = {
+            "processing_time": processing_time,
+            "result": result
+        }
 
         return {
             "processing_time": processing_time,

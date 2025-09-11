@@ -1,9 +1,35 @@
 import argparse
+import concurrent.futures
+from functools import partial
 
 # Импортируем функции для сбора файлов и обработки данных с использованием модели ollama
 from file_collector import file_collector
-from ollama_process import ollama_process
+from ollama_process import ollama_process, init_cache, save_cache
 from encoding_converter import convert_dir_to_utf8
+
+
+def process_single_file(file_path, model, framework, requirements):
+    """Обрабатывает один файл с использованием модели Ollama"""
+    try:
+        # Читаем содержимое файла
+        with open(file_path, 'r', encoding='utf-8') as file:
+            original_content = file.read()
+    except Exception as e:
+        print(f"Ошибка чтения файла {file_path}: {e}")
+        return None
+
+    # Обрабатываем содержимое файла с использованием указанной модели
+    try:
+        process_result = ollama_process(original_content, model, framework, requirements)
+    except Exception as e:
+        print(f"Ошибка обработки файла {file_path}: {e}")
+        return None
+
+    # Записываем результат обратно в файл
+    with open(file_path, 'w', encoding='utf-8') as file:
+        file.write(process_result['result'])
+
+    return (file_path, process_result['processing_time'])
 
 
 def main():
@@ -20,7 +46,7 @@ def main():
     parser.add_argument("-e", "--extensions", nargs="+", required=False, default=[], help="Список расширений файлов для поиска")
 
     # Добавляем возможность указать количество потоков
-    parser.add_argument("-t", "--threads", type=int, required=False, default=3, help="Количество потоков")
+    parser.add_argument("-t", "--threads", type=int, required=False, default=5, help="Количество потоков")
 
     # Добавляем возможность указать фреймворк или cms вручную
     parser.add_argument("-f", "--framework", type=str, required=False, help="Фреймворк/CMS")
@@ -40,35 +66,35 @@ def main():
     # Парсим аргументы командной строки
     args = parser.parse_args()
 
+    # Инициализируем кэш
+    init_cache()
+
     # Изменяем кодировку файлов
     convert_dir_to_utf8(args.directory, args.extensions)
 
     # Собираем файлы с указанными расширениями в директории
     files = file_collector(args.directory, args.extensions, exclude_dirs=args.exclude_dirs, exclude_files=args.exclude_files, exclude_patterns=args.exclude_patterns)
 
-    # Проходим по собранным файлам
-    for file_path in files:
-        # Читаем содержимое файла
-        try: # Обрабатываем ошибки чтения файла
-            with open(file_path, 'r', encoding='utf-8') as file:
-                original_content = file.read()
-        except Exception as e:
-            print(f"Ошибка чтения файла {file_path}: {e}")
-            continue
-        
+    # Создаем частичную функцию для обработки файлов
+    process_func = partial(process_single_file, model=args.model, framework=args.framework, requirements=args.requirements)
 
-        # Обрабатываем содержимое файла с использованием указанной модели
-        try:
-            process_result = ollama_process(original_content, args.model, args.framework, args.requirements)
-        except Exception as e:
-            print(f"Ошибка обработки файла {file_path}: {e}")
-            continue
+    # Многопоточная обработка файлов
+    with concurrent.futures.ThreadPoolExecutor(max_workers=args.threads) as executor:
+        # Отправляем все файлы на обработку
+        future_to_file = {executor.submit(process_func, file_path): file_path for file_path in files}
 
-        # Записываем результат обратно в файл
-        with open(file_path, 'w', encoding='utf-8') as file:
-            file.write(process_result['result'])
+        # Обрабатываем результаты по мере их завершения
+        for future in concurrent.futures.as_completed(future_to_file):
+            file_path = future_to_file[future]
+            try:
+                result = future.result()
+                if result:
+                    print(f"Обновлён файл: {result[0]}. Время обработки файла: {result[1]:.2f} сек")
+            except Exception as e:
+                print(f"Ошибка при обработке файла {file_path}: {e}")
 
-        print(f"Обновлён файл: {file_path}. Время обработки файла: {process_result['processing_time']}")
+    # Сохраняем кэш
+    save_cache()
 
 
 # Если скрипт запущен как основная программа, вызываем функцию main()

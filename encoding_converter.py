@@ -1,7 +1,7 @@
-# encoding_converter.py
 import os
 import re
 import chardet
+import concurrent.futures
 
 
 def convert_file_to_utf8(file_path):
@@ -51,11 +51,18 @@ def convert_dir_to_utf8(directory, extensions=None):
         extensions = ['.php', '.html', '.css', '.js', '.txt', '.json', '.xml', '.md', '.py']
 
     converted_count = 0
+    files_to_convert = []
+
+    # Сначала собираем все файлы для конвертации
     for root, _, files in os.walk(directory):
         for file in files:
             if any(file.endswith(ext) for ext in extensions):
                 file_path = os.path.join(root, file)
-                if convert_file_to_utf8(file_path):
-                    converted_count += 1
+                files_to_convert.append(file_path)
+
+    # Многопоточная конвертация файлов
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+        results = executor.map(convert_file_to_utf8, files_to_convert)
+        converted_count = sum(results)
 
     print(f"Конвертировано файлов: {converted_count}")
