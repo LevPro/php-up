@@ -2,7 +2,7 @@ import json
 import os
 
 # Глобальная переменная для кэша
-CACHE_FILE = os.path.join(os.path.expanduser("~"), ".code-security", "cache.json")
+CACHE_FILE = os.path.join(os.path.expanduser("~"), ".php-up", "cache.json")
 
 
 def load_cache(file_path=CACHE_FILE):
