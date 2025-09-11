@@ -49,7 +49,7 @@ def main():
     parser.add_argument("-t", "--threads", type=int, required=False, default=5, help="Количество потоков")
 
     # Добавляем возможность указать фреймворк или cms вручную
-    parser.add_argument("-f", "--framework", type=str, required=False, help="Фреймворк/CMS")
+    parser.add_argument("-f", "--framework", type=str, required=False, help="Фреймворк/CMS", default="unknown")
 
     # Добавляем директории, которые необходимо исключить
     parser.add_argument("-ed", "--exclude-dirs", nargs="+", help="Директории для исключения", default=[])
