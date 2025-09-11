@@ -2,34 +2,9 @@ import time
 import re
 import requests
 import hashlib
-import json
-import os
+
 from functools import lru_cache
-
-# Глобальная переменная для кэша
-CACHE_FILE = "ollama_cache.json"
-cache = {}
-
-
-def init_cache():
-    """Инициализирует кэш из файла"""
-    global cache
-    if os.path.exists(CACHE_FILE):
-        try:
-            with open(CACHE_FILE, 'r', encoding='utf-8') as f:
-                cache = json.load(f)
-        except:
-            cache = {}
-
-
-def save_cache():
-    """Сохраняет кэш в файл"""
-    try:
-        with open(CACHE_FILE, 'w', encoding='utf-8') as f:
-            json.dump(cache, f, ensure_ascii=False, indent=2)
-    except:
-        pass
-
+from cache import load_cache, save_cache
 
 def _strip_code_fences(text: str) -> str:
     """Убирает внешние тройные бэктики ```...``` и возможный язык после них, не трогая содержимое.
@@ -84,6 +59,8 @@ def ollama_process(file_content, model, framework, requirements):
     content_hash = _generate_prompt_hash(file_content, framework or "unknown", tuple(requirements))
 
     # Проверяем, есть ли результат в кэше
+    cache = load_cache()
+
     if content_hash in cache:
         cached_result = cache[content_hash]
         return {
@@ -147,6 +124,8 @@ def ollama_process(file_content, model, framework, requirements):
             "processing_time": processing_time,
             "result": result
         }
+
+        save_cache(cache)
 
         return {
             "processing_time": processing_time,

@@ -4,7 +4,6 @@ from functools import partial
 
 # Импортируем функции для сбора файлов и обработки данных с использованием модели ollama
 from file_collector import file_collector
-from ollama_process import ollama_process, init_cache, save_cache
 from encoding_converter import convert_dir_to_utf8
 
 
@@ -66,9 +65,6 @@ def main():
     # Парсим аргументы командной строки
     args = parser.parse_args()
 
-    # Инициализируем кэш
-    init_cache()
-
     # Изменяем кодировку файлов
     convert_dir_to_utf8(args.directory, args.extensions)
 
@@ -92,9 +88,6 @@ def main():
                     print(f"Обновлён файл: {result[0]}. Время обработки файла: {result[1]:.2f} сек")
             except Exception as e:
                 print(f"Ошибка при обработке файла {file_path}: {e}")
-
-    # Сохраняем кэш
-    save_cache()
 
 
 # Если скрипт запущен как основная программа, вызываем функцию main()
