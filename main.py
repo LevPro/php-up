@@ -5,6 +5,7 @@ from functools import partial
 # Импортируем функции для сбора файлов и обработки данных с использованием модели ollama
 from file_collector import file_collector
 from encoding_converter import convert_dir_to_utf8
+from ollama_process import ollama_process
 
 
 def process_single_file(file_path, model, framework, requirements):
