@@ -74,7 +74,7 @@ def ollama_process(file_content, model, framework, requirements):
     # Добавляем дополнительные требования
     requirements_info = ""
     if len(requirements) > 0:
-        start_num = 7 if framework != 'unknown' else 6
+        start_num = 5 if framework != 'unknown' else 6
         for requirement in requirements:
             requirements_info = requirements_info + f"{start_num}. {requirement}\n"
             start_num += 1
@@ -85,14 +85,15 @@ def ollama_process(file_content, model, framework, requirements):
     2. Добавь комментарии на русском
     3. Приведи к стандартам PSR-12
     4. Сохрани функциональность
-    5. В ответе предоставь только код без каких-либо пояснений, комментариев или дополнительного текста. Только код.
     {framework_info}
     {requirements_info}
 
     Код:
     ```php
     {file_content}
-    ```"""
+    ```
+
+    ВАЖНО: Верни только исправленную версию полного кода без каких-либо комментариев, объяснений или дополнительного текста. Исходная структура и функциональность кода должны быть сохранены."""
 
     # Начало отсчета времени
     start_time = time.time()
