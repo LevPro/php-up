@@ -1,10 +1,9 @@
 import argparse
 
-from concurrent.futures import ThreadPoolExecutor
-from encoding_converter import convert_dir_to_utf8
+# Импортируем функции для сбора файлов и обработки данных с использованием модели ollama
 from file_collector import file_collector
 from ollama_process import ollama_process
-from framework_detector import detect_framework
+from encoding_converter import convert_dir_to_utf8
 
 
 def main():
@@ -37,15 +36,9 @@ def main():
 
     # Добавляем дополнительные требования
     parser.add_argument("-r", "--requirements", nargs="+", help="Дополнительные требования", default=[])
-    
-    args = parser.parse_args()
 
-    # Определяем фреймворк
-    if args.framework:
-        framework = args.framework.lower()
-    else:
-        framework = detect_framework(args.directory)
-        print(f"Определен фреймворк: {framework}")
+    # Парсим аргументы командной строки
+    args = parser.parse_args()
 
     # Изменяем кодировку файлов
     convert_dir_to_utf8(args.directory, args.extensions)
@@ -53,35 +46,31 @@ def main():
     # Собираем файлы с указанными расширениями в директории
     files = file_collector(args.directory, args.extensions, exclude_dirs=args.exclude_dirs, exclude_files=args.exclude_files, exclude_patterns=args.exclude_patterns)
 
-    # Определяем количество асинхронных потоков
-    with ThreadPoolExecutor(max_workers=args.threads) as executor:
-        # Передаем composer зависимости в process_file
-        futures = [executor.submit(process_file, file_path, args.model, framework, args.requirements) for file_path in files]
+    # Проходим по собранным файлам
+    for file_path in files:
+        # Читаем содержимое файла
+        try: # Обрабатываем ошибки чтения файла
+            with open(file_path, 'r', encoding='utf-8') as file:
+                original_content = file.read()
+        except Exception as e:
+            print(f"Ошибка чтения файла {file_path}: {e}")
+            continue
+        
 
-        # Ожидаем завершения всех задач и обрабатываем результаты
-        for future in futures:
-            try:
-                result = future.result()
-                print(f"Обновлён файл: {result['file_path']}. Время обработки файла: {result['processing_time']}")
-            except Exception as e:
-                print(f"Ошибка при обработке файла: {e}")
+        # Обрабатываем содержимое файла с использованием указанной модели
+        try:
+            process_result = ollama_process(original_content, args.model, args.framework, args.requirements)
+        except Exception as e:
+            print(f"Ошибка обработки файла {file_path}: {e}")
+            continue
 
-
-def process_file(file_path, model, framework, requirements):
-    """Функция для обработки отдельного файла"""
-    try:
-        # Передаем в ollama_process
-        process_result = ollama_process(file_path, model, framework, requirements)
-
+        # Записываем результат обратно в файл
         with open(file_path, 'w', encoding='utf-8') as file:
             file.write(process_result['result'])
 
-        return {
-            "processing_time": process_result,
-            "file_path": file_path
-        }
-    except Exception as e:
-        raise Exception(f"Ошибка при обработке файла {file_path}: {e}")
+        print(f"Обновлён файл: {file_path}. Время обработки файла: {process_result['processing_time']}")
 
+
+# Если скрипт запущен как основная программа, вызываем функцию main()
 if __name__ == "__main__":
     main()

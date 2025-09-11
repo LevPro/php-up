@@ -1,7 +1,7 @@
 # encoding_converter.py
 import os
+import re
 import chardet
-from pathlib import Path
 
 
 def convert_file_to_utf8(file_path):
@@ -28,6 +28,10 @@ def convert_file_to_utf8(file_path):
         # Декодируем и перекодируем в UTF-8
         try:
             text = raw_data.decode(encoding)
+            # Заменяем множественные переносы строк
+            text = re.sub(r'\n{2,}', '\n', text)
+            # Удаляем переносы в конце файла
+            text = re.sub(r'\n+$', '\n', text)
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(text)
             print(f"Конвертирован {file_path} из {encoding} в UTF-8")

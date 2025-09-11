@@ -3,6 +3,7 @@ import re
 
 import requests
 
+
 def _strip_code_fences(text: str) -> str:
     """Убирает внешние тройные бэктики ```...``` и возможный язык после них, не трогая содержимое.
     Работает построчно: если первая строка начинается с ``` — убираем её; если последняя строка — тоже ``` — убираем.
@@ -36,34 +37,32 @@ def _strip_code_fences(text: str) -> str:
 
     text = "\n".join(lines)
 
-    # Заменяем множественные переносы строк на двойные
-    text = re.sub(r'\n{3,}', '\n\n', text)
+    # Заменяем множественные переносы строк
+    text = re.sub(r'\n{2,}', '\n', text)
     # Удаляем переносы в конце файла
     text = re.sub(r'\n+$', '\n', text)
 
     return text
 
-def ollama_process(file_path, model, framework, requirements):
+
+def ollama_process(file_content, model, framework, requirements):
     # Добавляем информацию о фреймворке
-    framework_info = f"\n7. Проект использует {framework.upper()}" if framework != 'unknown' else ""
+    framework_info = f"\n6. Проект использует {framework.upper()}" if framework != 'unknown' else ""
 
     # Добавляем дополнительные требования
     requirements_info = ""
     if len(requirements) > 0:
-        start_num = 8 if framework != 'unknown' else 7
+        start_num = 7 if framework != 'unknown' else 6
         for requirement in requirements:
             requirements_info = requirements_info + f"{start_num}. {requirement}\n"
             start_num += 1
-
-    with open(file_path, 'r', encoding='utf-8') as file:
-        file_content = file.read()
 
     prompt = f"""Проанализируй предоставленный PHP код и выполни следующие преобразования:
     1. Адаптируй синтаксис под PHP 8.4 с использованием новейших возможностей языка
     2. Добавь комментарии на русском языке для методов и сложных логических блоков
     3. Приведи код к стандартам PSR-12 и современным best practices
-    5. Сохрани исходную функциональность при модификации
-    6. Верни только полностью исправленный код без пояснений
+    4. Сохрани исходную функциональность при модификации
+    5. Верни только полностью исправленный код без пояснений
     {framework_info}
     {requirements_info}
 
@@ -86,28 +85,22 @@ def ollama_process(file_path, model, framework, requirements):
         "stream": False
     }
 
-    print(f"Отправка запроса: {prompt}")
-
     try:
         response = requests.post(url, headers=headers, json=data, timeout=600)
         response.raise_for_status()
 
         # Извлекаем результат из поля 'response' в JSON
-        result_json = response.json()
-        raw = result_json.get('response', '')
-        result = _strip_code_fences(raw)
-
-        print(f"Получен ответ: {result}")
-
-        # Записываем результат
-        with open(file_path, 'w', encoding='utf-8') as file:
-            file.write(result)
+        result = response.json()
+        result = result['response']
 
         # Окончание отсчета времени
         end_time = time.time()
         processing_time = end_time - start_time
 
-        return processing_time
+        return {
+            "processing_time": processing_time,
+            "result": result
+        }
 
     except requests.exceptions.RequestException as e:
         raise Exception(f"Ошибка при запросе к Ollama: {str(e)}")

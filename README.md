@@ -31,7 +31,6 @@ python main.py /path/to/php/project -m codellama:7b -f symfony -t 4 -e php phtml
 - directory (обязательный): Путь к директории с PHP-проектом
 - -m/--model (обязательный): Имя модели Ollama
 - -e/--extensions: Расширения файлов для обработки (по умолчанию: php)
-- -t/--threads: Количество потоков (по умолчанию: 3)
 - -f/--framework: Ручное указание фреймворка/CMS (опционально)
 - -r/--requirements: Дополнительные требования (опционально)
 - -ed/--exclude-dirs - полные пути к директориям для исключения (опционально)

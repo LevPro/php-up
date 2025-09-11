@@ -1,6 +1,5 @@
 import fnmatch
 import os
-import re
 
 
 def should_exclude(path, exclude_dirs, exclude_files, exclude_patterns):
