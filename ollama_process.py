@@ -6,45 +6,34 @@ import hashlib
 from functools import lru_cache
 from cache import load_cache, save_cache
 
-def _strip_code_fences(text: str) -> str:
+def _strip_code_fences(text: str, extensions: list) -> str:
     """Убирает внешние тройные бэктики ```...``` и возможный язык после них, не трогая содержимое.
     Работает построчно: если первая строка начинается с ``` — убираем её; если последняя строка — тоже ``` — убираем.
     Ничего не удаляем внутри тела.
     """
-    if not text:
-        return text
-    lines = text.splitlines()
-    # trim leading/trailing empty lines
-    while lines and lines[0].strip() == "":
-        lines.pop(0)
-    while lines and lines[-1].strip() == "":
-        lines.pop()
-    if not lines:
-        return ""
+    code_block = ''
+    
+    for ext in extensions:
+        # Используем регулярное выражение для поиска блока кода
+        match = re.search(r'```' + re.escape(ext) + '(.*?)```', text, re.DOTALL)
+        
+        if not match:
+            continue
+        
+        # Извлекаем содержимое блока кода
+        code_block = match.group(1).strip()
 
-    first = lines[0].strip()
-    last = lines[-1].strip()
-
-    if first.startswith("```"):
-        # убрать первую строку (может быть ``` или ```php)
-        lines = lines[1:]
-        # убрать возможные пустые строки в начале
-        while lines and lines[0].strip() == "":
-            lines.pop(0)
-        if lines and lines[-1].strip().startswith("```"):
-            lines = lines[:-1]
-    elif last.startswith("```"):
-        # только закрывающая — убираем её
-        lines = lines[:-1]
-
-    text = "\n".join(lines)
-
-    # Заменяем множественные переносы строк
-    text = re.sub(r'\n{2,}', '\n', text)
-    # Удаляем переносы в конце файла
-    text = re.sub(r'\n+$', '\n', text)
-
-    return text
+    # Если ничего не нашли - возвращаем пустую строку
+    if code_block == '':
+        return code_block
+        
+    # Удаляем лишние пустые строки в начале и конце
+    while code_block and code_block[0] == '':
+        code_block = code_block[1:]
+    while code_block and code_block[-1] == '':
+        code_block = code_block[:-1]
+    
+    return code_block
 
 
 @lru_cache(maxsize=1000)
@@ -54,7 +43,7 @@ def _generate_prompt_hash(file_content, framework, requirements):
     return hashlib.md5(content.encode('utf-8')).hexdigest()
 
 
-def ollama_process(file_content, model, framework, requirements):
+def ollama_process(file_content, model, framework, requirements, extensions):
     # Генерируем хэш для кэширования
     content_hash = _generate_prompt_hash(file_content, framework or "unknown", tuple(requirements))
 
@@ -74,47 +63,22 @@ def ollama_process(file_content, model, framework, requirements):
     # Добавляем дополнительные требования
     requirements_info = ""
     if len(requirements) > 0:
-        start_num = 22
+        start_num = 1
+        requirements_info = "Дополнительные требования:\n"
         for requirement in requirements:
             requirements_info = requirements_info + f"{start_num}. {requirement}\n"
             start_num += 1
 
     # Упрощенный промпт для ускорения обработки
-    prompt = f"""Задача: Проведи полный рефакторинг предоставленного ниже PHP-кода, чтобы привести его в соответствие с современными стандартами разработки, лучшими практиками и принципами чистого кода.
+    prompt = f"""Задача: Предоставленных ниже PHP-код должен соответствовать стандартам PSR12.
     
     Исходный код:
     ```php
     {file_content}
     ```
-
-    Ключевые требования к рефакторингу:
-    1. Приведи имена переменных, функций, классов и методов в соответствие с PSR-1 и PSR-12 (используй camelCase для методов/переменных и PascalCase для классов).
-    2. Добавь строгую типизацию (type hints) везде, где это возможно: объявления типов для аргументов функций, возвращаемых значений (void, string, ?int и т.д.) и свойств классов.
-    3. Разбей монолитные функции на более мелкие, следуя Принципу единственной ответственности (SRP).
-    4. Добавь осмысленные комментарии в формате PHPDoc для всех классов, методов и сложных участков кода.
-    5. Экранируй все выходные данные для защиты от XSS с помощью функции htmlspecialchars() или через шаблонизатор.
-    6. Если в коде есть прямые SQL-запросы, замени их на подготовленные выражения (Prepared Statements) с использованием PDO. Вынеси логику работы с БД в отдельный слой.
-    7. Проверь, нет ли уязвимостей (например, прямой включение файлов по пути от пользователя). Замени на безопасные альтернативы.
-    8. Архитектура и современные подходы:
-    9. Внедри зависимостей (Dependency Injection): Убери прямое создание экземпляров зависимых классов внутри методов. Внедряй зависимости через конструктор.
-    10. Раздели уровни приложения: Если код смешивает логику, вывод и работу с данными, раздели его на отдельные слои (например, сервисный слой для бизнес-логики и репозиторий для работы с БД).
-    11. Примени другие подходящие принципы SOLID (например, Interface Segregation, Open/Closed).
-    12. Замени подавление ошибок оператором @ на корректную обработку исключений с помощью try...catch.
-    13. Выбрасывай исключения (throw new \InvalidArgumentException), а не возвращай false или null в случае ошибок.
-    14. Используй возможности PHP 8.x (как минимум 7.4+), такие как:
-    15. Оператор объединения с null (??), оператор распространения (...).
-    16. Совместимость с типами в свойствах классов (public string $name;).
-    17. match-выражения, arrow-функции (где это уместно и улучшает читаемость).
-    18. Конструктор класса в стиле PHP 8.
-    19. Используй современные функции для работы с массивами (array_map, array_filter) вместо циклов foreach, где это делает код чище.
-    20. Измени код так, чтобы его было легко покрыть юнит-тестами. Для этого зависимости должны быть внедрены, а не захардкожены.
-    21. Проаннотируй типы данных, чтобы облегчить статический анализ (например, с помощью PHPStan или Psalm).
     {requirements_info}
 
-    {framework_info}
-    
-    ВАЖНО: Верни ТОЛЬКО исправленную версию полного кода без любых комментариев, объяснений или дополнительного текста.
-    Любые пояснения запрещены. Только чистый PHP-код."""
+    {framework_info}"""
 
     # Начало отсчета времени
     start_time = time.time()
@@ -137,7 +101,7 @@ def ollama_process(file_content, model, framework, requirements):
         # Извлекаем результат из поля 'response' в JSON
         result = response.json()
         result = result['response']
-        result = _strip_code_fences(result)
+        result = _strip_code_fences(result, extensions)
 
         # Окончание отсчета времени
         end_time = time.time()
