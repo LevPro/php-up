@@ -67,7 +67,7 @@ def ollama_process(file_content, model, framework, requirements):
             start_num += 1
 
     # Упрощенный промпт для ускорения обработки
-    prompt = f"""Задача: Предоставленных ниже PHP-код должен соответствовать стандартам PSR12.
+    prompt = f"""Задача: Привести предоставленный ниже PHP-код к стандартам PSR12.
     
     Исходный код:
     ```php
