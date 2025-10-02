@@ -6,22 +6,19 @@ import hashlib
 from functools import lru_cache
 from cache import load_cache, save_cache
 
-def _strip_code_fences(text: str, extensions: list) -> str:
+def _strip_code_fences(text: str) -> str:
     """Убирает внешние тройные бэктики ```...``` и возможный язык после них, не трогая содержимое.
     Работает построчно: если первая строка начинается с ``` — убираем её; если последняя строка — тоже ``` — убираем.
     Ничего не удаляем внутри тела.
     """
-    code_block = ''
-    
-    for ext in extensions:
-        # Используем регулярное выражение для поиска блока кода
-        match = re.search(r'```' + re.escape(ext) + '(.*?)```', text, re.DOTALL)
+    # Используем регулярное выражение для поиска блока кода
+    match = re.search(r'```php(.*?)```', text, re.DOTALL)
         
-        if not match:
-            continue
+    if not match:
+        return ''
         
-        # Извлекаем содержимое блока кода
-        code_block = match.group(1).strip()
+    # Извлекаем содержимое блока кода
+    code_block = match.group(1).strip()
 
     # Если ничего не нашли - возвращаем пустую строку
     if code_block == '':
@@ -43,7 +40,7 @@ def _generate_prompt_hash(file_content, framework, requirements):
     return hashlib.md5(content.encode('utf-8')).hexdigest()
 
 
-def ollama_process(file_content, model, framework, requirements, extensions):
+def ollama_process(file_content, model, framework, requirements):
     # Генерируем хэш для кэширования
     content_hash = _generate_prompt_hash(file_content, framework or "unknown", tuple(requirements))
 
@@ -101,7 +98,8 @@ def ollama_process(file_content, model, framework, requirements, extensions):
         # Извлекаем результат из поля 'response' в JSON
         result = response.json()
         result = result['response']
-        result = _strip_code_fences(result, extensions)
+        result = _strip_code_fences(result)
+        result = result.replace('<? ', '<?php ')
 
         # Окончание отсчета времени
         end_time = time.time()
