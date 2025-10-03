@@ -4,8 +4,9 @@
 
 ## Возможности
 
-- Определение CMS/фреймворка проекта
-- Автоматическая конвертация кода в стандарт PHP 8.4
+- Автоматическая конвертация кода в стандарт PSR12
+- Автоматическое устранение ошибок
+- Устранение проблем с безопасностью
 - Добавление комментариев на русском языке
 - Приведение к стандартам PSR-12
 
@@ -24,13 +25,11 @@ pip install -r requirements.txt
 
 ## Использование
 ```bash
-python main.py /path/to/php/project -m codellama:7b -f symfony -t 4 -e php phtml -ed "/full/path/vendor" "/full/path/.git" -ep "*.test.php" "temp_*"
+python main.py /path/to/php/project -m codellama:7b -e php phtml -ed "/full/path/vendor" "/full/path/.git" -ep "*.test.php" "temp_*"
 ```
 Параметры командной строки:
 - directory (обязательный): Путь к директории с PHP-проектом
 - -m/--model (обязательный): Имя модели Ollama
-- -e/--extensions: Расширения файлов для обработки (по умолчанию: php)
-- -f/--framework: Ручное указание фреймворка/CMS (опционально)
 - -r/--requirements: Дополнительные требования (опционально)
 - -t/--threads: Количество потоков (опционально)
 - -ed/--exclude-dirs - полные пути к директориям для исключения (опционально)
