@@ -25,7 +25,7 @@ pip install -r requirements.txt
 
 ## Использование
 ```bash
-python main.py /path/to/php/project -m codellama:7b -e php phtml -ed "/full/path/vendor" "/full/path/.git" -ep "*.test.php" "temp_*"
+python main.py /path/to/php/project -m codellama:7b -ed "/full/path/vendor" "/full/path/.git" -ep "*.test.php" "temp_*"
 ```
 Параметры командной строки:
 - directory (обязательный): Путь к директории с PHP-проектом
